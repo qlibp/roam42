@@ -1,8 +1,18 @@
 /* globals roam42, roam42KeyboardLib, Tribute */
 
 (() => {
-  roam42.smartBlocks = {};  
-  roam42.smartBlocks.vars = new Object();  //used to store variables during running a Workflow  
+  roam42.smartBlocks = {};
+  roam42.smartBlocks.activeWorkflow = {}
+  roam42.smartBlocks.activeWorkflow.vars = new Object();  //used to store variables during running a Workflow  
+  roam42.smartBlocks.activeWorkflow.name = ''; //name of currently running workflow  
+  roam42.smartBlocks.activeWorkflow.UID  = ''; //uid where the SB originates from
+  roam42.smartBlocks.activeWorkflow.startingBlockTextArea = ''; //HTML element ID of starting point for the workflow action
+  roam42.smartBlocks.activeWorkflow.startingBlockContents = ''; //Text contents of the block from when the SB was initaited
+  roam42.smartBlocks.activeWorkflow.currentSmartBlockBlockBeingProcessed = ''; // text from current block IN the workflow being procssed
+  roam42.smartBlocks.activeWorkflow.currentSmartBlockTextArea = '';            //the HTML Element ID of current point of execution
+  roam42.smartBlocks.activeWorkflow.focusOnBlock = ''; // if set with <%FOCUSONBLOCK%> Will move to this block for focus mode after workflow
+  roam42.smartBlocks.activeWorkflow.arrayToWrite = []; // use to output multiple blocks from a command
+  roam42.smartBlocks.exclusionBlockSymbol = '!!!!****!!!!****!!!!****!!!!****!!!!****'; //used to indicate a block is not to be inserted
   
   roam42.smartBlocks.initialize = async ()=>{
     var smartBlockTrigger = ";;";
@@ -14,77 +24,6 @@
         smartBlockTrigger = customTrigger;
     }
     
-    const exclusionBlockSymbol = '!!!!****!!!!****!!!!****!!!!****!!!!****'; //used to indicate a block is not to be inserted
-
-    const addStaticValues =  async (valueArray)=> {
-      //DATE COMMANDS
-      valueArray.push({key: 'today (42)',           value: 'today',     processor:'date'});
-      valueArray.push({key: 'tomorrow (42)',       value: 'tomorrow', processor:'date'});      
-      valueArray.push({key: 'yesterday (42)',       value: 'yesterday', processor:'date'});      
-      ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].forEach(  (e)=>{
-        valueArray.push({key: `${e} (42)`,          value: `${e}`,      processor:'date'});
-        valueArray.push({key: `Last ${e} (42)`,     value: `Last ${e}`, processor:'date'});
-        valueArray.push({key: `Next ${e} (42)`,     value: `Next ${e}`, processor:'date'});
-      });
-      valueArray.push({key: 'Time 24 (42)',          value: getTime24Format(),      processor:'static'});
-      valueArray.push({key: 'Time AM/PM (42)',       value: getTimeAPPMFormat(),      processor:'static'});
-      valueArray.push({key: 'Serendipity - R a n d o m Block (42)', value: '',     processor:'randomblock'});
-      valueArray.push({key: 'Serendipity - R a n d o m Page (42)', value: '',     processor:'randompage'});
-      valueArray.push({key: 'Horizontal Line (42)',   value: ':hiccup [:hr]',     processor:'static'});
-      valueArray.push({key: 'Workflow Starter (SmartBlock function)', processor:'function', value: async ()=>{
-                        var workflowName = prompt("What is the name of the new workflow?")
-                        roam42.common.setEmptyNodeValue( document.querySelector("textarea"), "#42SmartBlock " + workflowName );            
-                        await roam42.common.sleep(200);
-                        await roam42KeyboardLib.pressEnter();
-                        await roam42.common.sleep(200);
-                        await roam42KeyboardLib.pressTab();
-                      }});
-      valueArray.push({key: 'sb42 (SmartBlock function)',                      value: '#42SmartBlock',          processor:'static'});
-      valueArray.push({key: '<% CURSOR %> (SmartBlock function)',              value: '<%CURSOR%>',             processor:'static'});
-      valueArray.push({key: '<% CLIPBOARDCOPY %> (SmartBlock function)',       value: '<%CLIPBOARDCOPY:&&&%>',  processor:'static'});
-      valueArray.push({key: '<% CLIPBOARDPASTETEXT %> (SmartBlock function)',  value: '<%CLIPBOARDPASTETEXT%>', processor:'static'});
-      valueArray.push({key: '<% CURRENTBLOCKREF %> (SmartBlock function)',     value: '<%CURRENTBLOCKREF%>',    processor:'static'});
-      valueArray.push({key: '<% DATE %> (SmartBlock function)',                value: '<%DATE:&&&%>',           processor:'static'});
-      valueArray.push({key: '<% FOCUSONBLOCK %> (SmartBlock function)',        value: '<%FOCUSONBLOCK%>',      processor:'static'});
-      valueArray.push({key: '<% IF %> (SmartBlock function)',                  value: '<%IF:&&&%>',             processor:'static'});      
-      valueArray.push({key: '<% THEN %> (SmartBlock function)',                value: '<%THEN:&&&%>',           processor:'static'});      
-      valueArray.push({key: '<% ELSE %> (SmartBlock function)',                value: '<%ELSE:&&&%>',           processor:'static'});      
-      valueArray.push({key: '<% IFDAYOFMONTH %> (SmartBlock function)',        value: '<%IFDAYOFMONTH:&&&%>',   processor:'static'});
-      valueArray.push({key: '<% IFDAYOFWEEK %> (SmartBlock function)',         value: '<%IFDAYOFWEEK:&&&%>',    processor:'static'});
-      valueArray.push({key: '<% INPUT %> (SmartBlock function)',               value: '<%INPUT:&&&%>',          processor:'static'});
-      valueArray.push({key: '<% JAVASCRIPT %> (SmartBlock function)',          value: '<%JAVASCRIPT:&&&%>',     processor:'static'});            
-      valueArray.push({key: '<% JAVASCRIPTASYNC %> (SmartBlock function)',     value: '<%JAVASCRIPTASYNC:&&&%>',processor:'static'});            
-      valueArray.push({key: '<% NOBLOCKOUTPUT %> (SmartBlock function)',       value: '<%NOBLOCKOUTPUT%>',      processor:'static'});
-      valueArray.push({key: '<% RANDOMBLOCK %> (SmartBlock function)',         value: '<%RANDOMBLOCK%>',        processor:'static'});
-      valueArray.push({key: '<% RANDOMBLOCKFROM %> (SmartBlock function)',     value: '<%RANDOMBLOCKFROM:&&&%>',processor:'static'});
-      valueArray.push({key: '<% RANDOMBLOCKMENTION %> (SmartBlock function)',  value: '<%RANDOMBLOCKMENTION:&&&%>',processor:'static'});
-      valueArray.push({key: '<% RANDOMPAGE %> (SmartBlock function)',          value: '<%RANDOMPAGE%>',         processor:'static'});
-      valueArray.push({key: '<% RESOLVEBLOCKREF %> (SmartBlock function)',     value: '<%RESOLVEBLOCKREF:&&&%>',processor:'static'});
-      valueArray.push({key: '<% TIME %> (SmartBlock function)',                value: '<%TIME%>',               processor:'static'});
-      valueArray.push({key: '<% TIMEAMPM %> (SmartBlock function)',            value: '<%TIMEAMPM%>',           processor:'static'});
-      valueArray.push({key: '<% GET %> (SmartBlock function)',                 value: '<%GET:&&&%>',            processor:'static'});
-      valueArray.push({key: '<% SET %> (SmartBlock function)',                 value: '<%SET:&&&%>',            processor:'static'});
-      valueArray.push({key: '<% CLEARVARS %> (SmartBlock function)',           value: '<%CLEARVARS%>',          processor:'static'});
-    };
-
-    const sortObjectByKey = async o => {
-      return o.sort(function(a, b) {
-        return a.key.localeCompare(b.key);
-      });
-    };
-
-    const sortObjectsByOrder = async o => {
-      return o.sort(function(a, b) {
-        return a.order - b.order;
-      });
-    };  
-
-    const valuesForLookup = async (text, cb) => {
-      let results = await roam42.smartBlocks.UserDefinedWorkflowsList();
-      addStaticValues( results );
-      cb( results );
-    };
-
     roam42.smartBlocks.UserDefinedWorkflowsList = async () => {
       let sbList = await roam42.common.getBlocksReferringToThisPage("42SmartBlock");
       let results = [];
@@ -92,9 +31,14 @@
           var sKey =  await roam42.common.replaceAsync(sb[0].string,"#42SmartBlock", ()=>{return ''});
           results.push({  key: sKey.trim(),  value: sb[0].uid,processor:'blocks'});
       }
-      return results = await sortObjectByKey(results);
+      return results = await roam42.common.sortObjectByKey(results);
     };
-
+    
+    roam42.smartBlocks.activeWorkflow.outputAdditionalBlock = async (blockText, reprocessBlock)=> {
+      // blockText - text that should be writen out to a block
+      // reprocess - will run the block through the processor one more time
+      await roam42.smartBlocks.activeWorkflow.arrayToWrite.push({'text': blockText, reprocess: reprocessBlock  });
+    }
     
     const insertSnippetIntoBlock = async ( textToInsert, removeIfCursor = true )=> {
       setTimeout(async()=>{
@@ -123,171 +67,77 @@
       },50)
     }
     
-    const getTime24Format = ()=> {
-      var dt = new Date();
-      return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
-    }
-    
-    const getTimeAPPMFormat = ()=>{
-        var dt = new Date();
-        var hours = dt.getHours();
-        var minutes = dt.getMinutes();
-        var ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        minutes = minutes < 10 ? '0'+minutes : minutes;
-        var strTime = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(0,2) + ' ' + ampm;
-        return strTime;      
-    }
-    
-    const asyncQuerySelector = async (node, query) => {
-      try {
-        return await (query ? node.querySelector(query) : node);
-      } catch (error) {
-        console.error(`Cannot find ${query ? `${query} in`: ''} ${node}.`, error);
-        return null;
+    const applyViewType = async (node)=>{
+      //applies the document type for the bullet level
+      var blockId = document.querySelector('textarea.rm-block-input').id;
+      var parentControlNode = document.querySelector('textarea.rm-block-input').parentNode;  
+      roam42.common.simulateMouseClickRight(
+        document.querySelector('textarea.rm-block-input').closest('.flex-h-box').querySelector('.simple-bullet-outer'))
+      await roam42.common.sleep(100);
+      var menuItem1 = document.querySelector('.bp3-popover-content > div> ul').childNodes[9].innerText;
+      var menuItem2 = document.querySelector('.bp3-popover-content > div> ul').childNodes[10].innerText;
+      var menuItemToClick = false;
+      switch (node['view-type']) {
+        case 'bullet':
+          if(menuItem1=='View as Bulleted List') 
+            menuItemToClick=1;
+          if(menuItem2=='View as Bulleted List') 
+            menuItemToClick=2;
+          break;
+        case 'document':
+          if(menuItem1=='View as Document') 
+            menuItemToClick=1;
+          if(menuItem2=='View as Document') 
+            menuItemToClick=2;
+          break;
+        case 'numbered':
+          if(menuItem1=='View as Numbered List') 
+            menuItemToClick=1;
+          if(menuItem2=='View as Numbered List') 
+            menuItemToClick=2;
+          break;
       }
-    };    
+      if(menuItemToClick == false) 
+        await roam42KeyboardLib.pressEsc(100);
+      else
+        document.querySelector('.bp3-popover-content > div> ul').childNodes[8 + menuItemToClick  ].childNodes[0].click();
+      await roam42.common.sleep(100);
+      roam42.common.simulateMouseClick(document.getElementById(blockId));
+      await roam42.common.sleep(100);
+      document.activeElement.setSelectionRange(document.activeElement.textLength,document.activeElement.textLength);          
+    }
     
-    const proccessBlockWithSmartness = async (textToProcess)=>{
-      let ifCommand = null;  // null if no IF, true process THEN, false process ELSE
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%CLEARVARS\%\>)/g, async (match, name)=>{
-        roam42.smartBlocks.vars = new Object();    
-        return '';
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%CURRENTBLOCKREF\%\>)/g, async (match, name)=>{
-        let tID = await  asyncQuerySelector(document,'textarea.rm-block-input');
-        let UID = tID.id;
-        let results = '((' + UID.substring( UID.length -9) + '))';
-        return results;
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RESOLVEBLOCKREF:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var uid = match.replace('<%RESOLVEBLOCKREF:','').replace('%>','').replace('((','').replace('))','').trim();
-        var queryResults = await roam42.common.getBlockInfoByUID(uid);
-        if(queryResults==null) 
-          return match + '--> Block Ref is not valid <--'; //no results, return origional
-        else
-          return queryResults[0][0].string;
-      });      
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%GET:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%GET:','').replace('%>','');
-        var vValue = roam42.smartBlocks.vars[textToProcess];
-        if(vValue==undefined) vValue = `--> Variable ${textToProcess} not SET <--`
-        return vValue;   
-      });      
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%JAVASCRIPT:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var scriptToRun = match.replace('<%JAVASCRIPT:','').replace('%>','');
-        var results = new Function(scriptToRun.toString())();
-        return results;
-      });           
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%JAVASCRIPTASYNC:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var scriptToRun = match.replace('<%JAVASCRIPTASYNC:','').replace('%>','');
-        var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
-        var results = new AsyncFunction(scriptToRun.toString())();
-        return results;
-      });           
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%INPUT:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%INPUT:','').replace('%>','');
-        if(textToProcess.includes('\%\%')) {
-          var splitPrompt = textToProcess.split('\%\%');
-          return prompt( splitPrompt[0],  splitPrompt[1] )
-        } else {
-          return prompt(textToProcess.toString());        
-        }
-      });
-      //Random block command
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RANDOMBLOCK\%\>)/g, async (match, name)=>{
-        return '((' + await roam42.common.getRandomBlock(1) + '))';
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RANDOMBLOCK:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        return roam42.smartBlocks.getRandomBlocks(textToProcess);
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RANDOMBLOCKFROM:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        return '((' + await roam42.smartBlocks.getRandomBlocksFrom(textToProcess) + '))';
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RANDOMBLOCKMENTION:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        return '((' + await roam42.smartBlocks.getRandomBlocksMention(textToProcess) + '))';
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%RANDOMPAGE\%\>)/g, async (match, name)=>{
-        return await roam42.smartBlocks.getRandomPage();
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%TIME\%\>)/g, async (match, name)=>{
-        return getTime24Format()
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%TIMEAMPM\%\>)/g, async (match, name)=>{
-        return getTimeAPPMFormat();
-      });           
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%DATE:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%DATE:','').replace('%>','').trim();
-        return roam42.dateProcessing.parseTextForDates(textToProcess).trim();
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%IFDAYOFWEEK:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%IFDAYOFWEEK:','').replace('%>','').trim();
-        var day = String(new Date().getDay());
-        if(day=='0') day='7'; //sunday
-        if(textToProcess.replaceAll(' ','').split(',').includes(day)) 
-          return ''; //
-        else 
-          return exclusionBlockSymbol
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%IFDAYOFMONTH:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%IFDAYOFMONTH:','').replace('%>','').trim();
-        if(textToProcess.replaceAll(' ','').split(',').includes( String(new Date().getDate()) ) ) 
-          return ''; //
-        else 
-          return exclusionBlockSymbol
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%CLIPBOARDCOPY:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToWrite = match.replace('<%CLIPBOARDCOPY:','').replace('%>','');
-        await navigator.clipboard.writeText( textToWrite );
-        return ' ';
-      });
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%CLIPBOARDPASTETEXT\%\>)/g, async (match, name)=>{
-        var cb = await navigator.clipboard.readText();
-        await roam42.common.sleep(50);        
-        return cb;
-      });      
-
-      //ALWAYS at end of process
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%NOBLOCKOUTPUT\%\>)/g, async (match, name)=>{
-        return exclusionBlockSymbol;
-      }); 
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%IF:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%IF:','').replace('%>','');
-        try {
-          if(eval(textToProcess)) 
-            ifCommand = true;
-          else
-            ifCommand = false;
-        } catch(e) { return '<%IF%> Failed with error: ' + e }
-        return '';   
-      });      
-      if(ifCommand!=null){
-        if(ifCommand==true){
-          textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%ELSE:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{return ''});          
-          textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%THEN:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-            return match.replace('<%THEN:','').replace('%>','');
-          });
-        } else {
-          textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%THEN:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{return ''});
-          textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%ELSE:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-            return match.replace('<%ELSE:','').replace('%>','');
-          });
-        }
-      }      
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%FOCUSONBLOCK\%\>)/g, async (match, name)=>{
-        //if assigned, will zoom to this location later
-        roam42.smartBlocks.focusOnBlock = document.activeElement.id; //if CURSOR, then make this the position block in end
-        return ''; 
-      });       
-      textToProcess = await roam42.common.replaceAsync(textToProcess, /(\<\%SET:)(\s*[\S\s]*?)(\%\>)/g, async (match, name)=>{
-        var textToProcess = match.replace('<%SET:','').replace('%>','');
-        roam42.smartBlocks.vars[textToProcess.substring(0,textToProcess.search(','))] = textToProcess.substring(textToProcess.search(',')+1,);
-        return '';   
-      });      
-      if(textToProcess.includes(exclusionBlockSymbol)) return exclusionBlockSymbol; //skip this block
-      return textToProcess; //resert new text
-    }    
+    const outputArrayWrite = async ()=> {
+        let blockInsertCounter = 0;
+        if(roam42.smartBlocks.activeWorkflow.arrayToWrite.length>0) {
+          for(let sb of roam42.smartBlocks.activeWorkflow.arrayToWrite) {
+            var textToInsert = sb.text;
+            if(sb.reprocess == true) textToInsert =  await roam42.smartBlocks.proccessBlockWithSmartness(textToInsert);
+            var setValue = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+            let txtarea = document.querySelector("textarea.rm-block-input");
+            setValue.call(txtarea, textToInsert );
+            var e = new Event('input', { bubbles: true });
+            txtarea.dispatchEvent(e);  
+            //PRESS ENTER 
+            {
+              let currentBlockId = document.querySelector('textarea.rm-block-input').id
+              await roam42KeyboardLib.pressEnter(50);
+              await roam42.common.sleep(100);
+              if( currentBlockId == document.querySelector('textarea.rm-block-input').id ) {
+                await roam42KeyboardLib.pressEnter(50);
+              }
+            }          
+            blockInsertCounter += 1;
+            if(blockInsertCounter > 9) {  //SmartBlocks coffee break to allow Roam to catch its breath
+                blockInsertCounter = 0;
+                await roam42.common.sleep(100);                  
+            }            
+          }
+          //reset for next run
+          await roam42.common.sleep(100);
+          roam42.smartBlocks.activeWorkflow.arrayToWrite = [];
+        }      
+    }
 
     const blocksToInsert = item => {
       setTimeout(async () => {        
@@ -312,37 +162,45 @@
             if(item.original.processor=='randomblock') insertSnippetIntoBlock( '((' + await roam42.common.getRandomBlock(1) + '))' );
             if(item.original.processor=='randompage') insertSnippetIntoBlock(await roam42.smartBlocks.getRandomPage());
             if(item.original.processor=='blocks') {
+
               var results = await roam42.common.getBlockInfoByUID( item.original.value, true );
+              roam42.smartBlocks.activeWorkflow.name = item.original.key;
+              roam42.smartBlocks.activeWorkflow.UID  = item.original.value;
+              roam42.smartBlocks.activeWorkflow.startingBlockTextArea = document.activeElement.id;
+              roam42.smartBlocks.activeWorkflow.startingBlockContents = document.activeElement.value;
+              roam42.smartBlocks.activeWorkflow.currentSmartBlockBlockBeingProcessed = '';
+              roam42.smartBlocks.activeWorkflow.currentSmartBlockTextArea = '';
+              roam42.smartBlocks.activeWorkflow.arrayToWrite = [];
+              
               //loop through array outline and insert into Roam
               if (results[0][0].children.length == 1 && !results[0][0].children[0].children) {
                 //has no children, just insert text into block and safe it
-                var processedText = await proccessBlockWithSmartness( results[0][0].children[0].string);
-                if( !processedText.includes(exclusionBlockSymbol) )
+                var processedText = await roam42.smartBlocks.proccessBlockWithSmartness( results[0][0].children[0].string);
+                roam42.smartBlocks.activeWorkflow.currentSmartBlockBlockBeingProcessed = processedText;
+                roam42.smartBlocks.activeWorkflow.currentSmartBlockTextArea = document.activeElement.id;
+                if( !processedText.includes(roam42.smartBlocks.exclusionBlockSymbol) )
                   insertSnippetIntoBlock( processedText );
+                await outputArrayWrite()
               } else {
                 //has children, start walking through the nodes and insert them
                 let blockInsertCounter = 0 //used to track how many inserts performed so we can take a coffee break at 19, to let Roam catch up
                 let firstBlock = true    //handles the first block specially
                 var currentOutlineLevel = 1;
-                roam42.smartBlocks.startingBlockTextArea = document.activeElement.id;
-                roam42.smartBlocks.focusOnBlock = '' // if set with <%FOCUSONBLOCK%> Will move to this block for focus mode after workflow
-                console.clear()
-
+                roam42.smartBlocks.activeWorkflow.focusOnBlock = '' // if set with <%FOCUSONBLOCK%> Will move to this block for focus mode after workflow
+              
                 var loopStructure = async (parentNode, level) => {
-                  let orderedNode = await sortObjectsByOrder(parentNode);
+                  let orderedNode = await roam42.common.sortObjectsByOrder(parentNode);
                   
                   for (var i = 0; i < orderedNode.length; i++) {
                     //indent/unindent if needed
                     if (currentOutlineLevel < level) {
                       for (var inc = currentOutlineLevel; inc < level; inc++) {
-                        await roam42KeyboardLib.delay(100);
-                        await roam42KeyboardLib.pressTab();
+                        await roam42KeyboardLib.pressTab(50);
                         currentOutlineLevel += 1;
                       }
                     } else if (currentOutlineLevel > level) {
                       for (var inc = currentOutlineLevel; inc > level; inc--) {
-                        await roam42KeyboardLib.delay(100);
-                        await roam42KeyboardLib.pressShiftTab();
+                        await roam42KeyboardLib.pressShiftTab(50);
                         currentOutlineLevel -= 1;
                       }
                     }
@@ -350,9 +208,11 @@
                     //TEXT INSERTION HAPPENING HERE
                     var insertText = n.string;
                     if (insertText == "") insertText = " "; //space needed in empty cell to maintaing indentation on empty blocks
-                    insertText = await proccessBlockWithSmartness(insertText);
-                    if( !insertText.includes(exclusionBlockSymbol) ) {
-                      if (firstBlock==true && document.activeElement.value.length>2) { 
+                    roam42.smartBlocks.activeWorkflow.currentSmartBlockBlockBeingProcessed = insertText;                
+                    roam42.smartBlocks.activeWorkflow.currentSmartBlockTextArea = document.activeElement.id;
+                    insertText = await roam42.smartBlocks.proccessBlockWithSmartness(insertText);
+                    if( !insertText.includes(roam42.smartBlocks.exclusionBlockSymbol) ) {
+                      if (firstBlock==true && document.activeElement.value.length>2) {
                         firstBlock = false;
                         var txtarea = document.querySelector("textarea.rm-block-input");
                         var strPos = txtarea.selectionStart;
@@ -361,11 +221,11 @@
                         var setValue = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
                         setValue.call(txtarea, front + insertText + back );
                         var e = new Event('input', { bubbles: true });
-                        txtarea.dispatchEvent(e);                      
+                        txtarea.dispatchEvent(e);                        
                       } else {
                         let txtarea = document.querySelector("textarea.rm-block-input");
                         await roam42.common.replaceAsync(insertText, /(\<\%CURSOR\%\>)/g, async (match, name)=>{
-                          roam42.smartBlocks.startingBlockTextArea = document.activeElement.id; //if CURSOR, then make this the position block in end
+                          roam42.smartBlocks.activeWorkflow.startingBlockTextArea = document.activeElement.id; //if CURSOR, then make this the position block in end
                         }); 
                         //https://stackoverflow.com/questions/45659576/trigger-change-events-when-the-value-of-an-input-changed-programmatically-react
                         var setValue = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
@@ -379,11 +239,16 @@
                         var ev = {};
                         ev.target = document.querySelector("textarea.rm-block-input");
                         roam42.jumpnav.jumpCommand( ev, "ctrl+j " + (Number(n.heading) + 4) ); //base is 4
-                        var id = document.querySelector("textarea.rm-block-input").id;
+                        // var id = document.querySelector("textarea.rm-block-input").id;
                         await roam42KeyboardLib.pressEsc(500);
-                        roam42.common.simulateMouseClick( document.querySelector("#" + id) );
+                        // roam42.common.simulateMouseClick( document.querySelector("#" + id) );
                       }
+                      
+                      if(n['view-type']) 
+                        await applyViewType(n);
+                      
                       if (n["text-align"] && n["text-align"] != "left") {
+
                         var ev = {};
                         ev.target = document.querySelector("textarea.rm-block-input");
                         switch (n["text-align"]) {
@@ -397,27 +262,29 @@
                             roam42.jumpnav.jumpCommand(ev, "ctrl+j 4"); //base is 4
                             break;
                         }
-                        var id = document.querySelector("textarea.rm-block-input").id;
+                        // var id = document.querySelector("textarea.rm-block-input").id;
                         await roam42.common.sleep(500);
-                        roam42.common.simulateMouseClick(document.querySelector("#" + id));
+                        // roam42.common.simulateMouseClick(document.querySelector("#" + id));
                       }
 
                       //PRESS ENTER 
                       {
                         let currentBlockId = document.querySelector('textarea.rm-block-input').id
-                        await roam42KeyboardLib.pressEnter();
-                        await roam42.common.sleep(50);
+                        await roam42KeyboardLib.pressEnter(50);
+                        await roam42.common.sleep(100);
                         if( currentBlockId == document.querySelector('textarea.rm-block-input').id ) {
-                          await roam42KeyboardLib.pressEnter();
+                          await roam42KeyboardLib.pressEnter(50);
                         }
                       }
 
                       blockInsertCounter += 1;
                       if(blockInsertCounter > 9) {  //SmartBlocks coffee break to allow Roam to catch its breath
                           blockInsertCounter = 0;
-                          await roam42.common.sleep(250);                  
+                          await roam42.common.sleep(100);                  
                       }
-
+                      
+                      await outputArrayWrite()
+                      
                       if (n.children) await loopStructure(n.children, level + 1);
                     } 
                   }
@@ -425,10 +292,15 @@
 
                 if (results[0][0].children){
                   await loopStructure(results[0][0].children, 1); //only process if has children
-                }                
+                }
+                //delete last blok inserted
+                await roam42.common.sleep(100);                
+                roam42.common.blockDelete(document.activeElement);
+                await roam42.common.sleep(100);                
+                
                 //Do a FOCUS on BLOCK
-                if(roam42.smartBlocks.focusOnBlock!='') {
-                  roam42.common.simulateMouseClick(document.getElementById(roam42.smartBlocks.focusOnBlock));   
+                if(roam42.smartBlocks.activeWorkflow.focusOnBlock!='') {
+                  roam42.common.simulateMouseClick(document.getElementById(roam42.smartBlocks.activeWorkflow.focusOnBlock));   
                   await roam42.common.sleep(100);
                   let parentControlNode =  document.activeElement.parentNode;                    
                   roam42.common.simulateMouseClickRight(parentControlNode.previousSibling.childNodes[1]);
@@ -436,7 +308,7 @@
                   await roam42.common.sleep(100);
                 }
                 //SET cursor location
-               roam42.common.simulateMouseClick(document.getElementById(roam42.smartBlocks.startingBlockTextArea));
+               roam42.common.simulateMouseClick(document.getElementById(roam42.smartBlocks.activeWorkflow.startingBlockTextArea));
                 setTimeout(()=>{
                   if(document.activeElement.value.includes('<%CURSOR%>'))    {
                     var newValue = document.querySelector('textarea.rm-block-input').value;
@@ -473,10 +345,32 @@
         trigger: smartBlockTrigger,
         requireLeadingSpace: false,
         menuItemTemplate: function(item) {
-          return "" + item.string;
+          var img = '';
+          switch(item.original.icon) {
+            case 'hl':
+              img = 'https://cdn.glitch.com/e6cdf156-cbb9-480b-96bc-94e406043bd1%2Fhr.png?v=1605996193520';
+              break;
+            case 'random':
+              img = 'https://cdn.glitch.com/e6cdf156-cbb9-480b-96bc-94e406043bd1%2Frandom.png?v=1605996193519';
+              break;
+            case 'gear':
+              img = 'https://cdn.glitch.com/e6cdf156-cbb9-480b-96bc-94e406043bd1%2Fgear.png?v=1605994815962';   
+              break;
+            case 'time':
+              img = 'https://cdn.glitch.com/e6cdf156-cbb9-480b-96bc-94e406043bd1%2Fclock-time-7.png?v=1605996193660';
+              break;
+            default:
+              img = "https://cdn.glitch.com/e6cdf156-cbb9-480b-96bc-94e406043bd1%2Flego3blocks.png?v=1605993127860";
+          }          
+          return `<img width="15px" src="${img}"> `
+                  + item.string;
         },
         menuItemLimit: 25,
-        values: valuesForLookup,
+        values:   async (text, cb) => {
+                    let results = await roam42.smartBlocks.UserDefinedWorkflowsList();
+                    await roam42.smartBlocks.addCommands( results );
+                    cb( results );
+                  },
         lookup: "key",
         fillAttr: "value",
         selectTemplate: blocksToInsert
@@ -503,5 +397,6 @@
     } catch (e) {}
     roam42.loader.addScriptToPage( "smartBlocks", roam42.host + 'ext/smartBlocks.js');
     setTimeout(()=>roam42.smartBlocks.initialize(), 2000)
+    setTimeout(()=>roam42.loader.addScriptToPage( "smartBlocks", roam42.host + 'ext/smartBlocksCmds.js'), 4000)    
   };
 })();

@@ -27,7 +27,7 @@
 if( typeof window.roam42 == 'undefined' ) { 
 
   window.roam42     =   {};
-  roam42.buildID = 'Roam<sup>42</sup> 2020-11-21 (BeebleBrox) ';
+  roam42.buildID = 'Roam<sup>42</sup> 2020-11-24a (BeebleBrox) ';
   
   roam42.host    = document.currentScript.src.replace('main.js','');
 
@@ -76,7 +76,7 @@ if( typeof window.roam42 == 'undefined' ) {
     roam42.loader.addScriptToPage( 'jsFlatpickr',      roam42.host + 'dist/flatpickr/flatpickr-4.6.6.min.js' );
        roam42.loader.addCSSToPage( 'cssFlatpckr',      roam42.host + 'dist/flatpickr/flatpickr.min.css' );
        roam42.loader.addCSSToPage( 'cssFlatpckrThme',  roam42.host + 'css/airbnb.css' );
-    roam42.loader.addScriptToPage( 'jsJsPanel',        roam42.host + 'dist/jspanel/jspanel-4.1.1-rc.min.js' );
+    roam42.loader.addScriptToPage( 'jsJsPanel',        roam42.host + 'dist/jspanel/jspanel-4.11.1.min.js' );
        roam42.loader.addCSSToPage( 'cssJsPanel',       roam42.host + 'dist/jspanel/jspanel.min.css' );
     roam42.loader.addScriptToPage( 'tributeJS',        roam42.host + 'dist/tribute/tribute.min.js' );
 
@@ -114,6 +114,7 @@ if( typeof window.roam42 == 'undefined' ) {
     roam42.loader.addScriptToPage( 'roam42Menu',        roam42.host + 'ext/roam42Menu.js'         );
     roam42.loader.addScriptToPage( 'roam42Tutorials',   roam42.host + 'ext/tutorials.js'          );
     roam42.loader.addScriptToPage( 'roamNavigator',     roam42.host + 'ext/roam-navigator.js'     );
+    roam42.loader.addScriptToPage( 'smartBlocksCmd',    roam42.host + 'ext/smartBlocksCmd.js'     );
     roam42.loader.addScriptToPage( 'smartBlocksRB',     roam42.host + 'ext/smartBlocksRB.js'      );
 
     //Do not load in iframe windows

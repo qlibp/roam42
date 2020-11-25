@@ -40,23 +40,28 @@
     }, //navigateUIToDate
   
   
-  // roam42.common.navigateUiTo = (destinationPage, useShiftKey)=>{
-  //     let inPut =  document.getElementById('find-or-create-input');
-  //     inPut.focus();
-  //     roam42.common.setEmptyNodeValue( inPut, destinationPage );
-  //     setTimeout(()=>{
-  //      if( roam42.keyevents.shiftKeyDownTracker==true && useShiftKey==true ) {
-  //         roam42KeyboardLib.simulateKey(13,100,{  shiftKey:true});   
-  //       } else {
-  //         roam42KeyboardLib.pressEnter();
-  //       }
-  //       setTimeout(()=>{
-  //         roam42.common.setEmptyNodeValue( inPut,'' );
-  //       },250);             
-  //     },400);   
-  //   }
+  roam42.common.sortObjectByKey = async o => {
+    return o.sort(function(a, b) {
+      return a.key.localeCompare(b.key);
+    });
+  };
 
+  roam42.common.sortObjectsByOrder = async o => {
+    return o.sort(function(a, b) {
+      return a.order - b.order;
+    });
+  };  
+  
+  roam42.common.asyncQuerySelector = async (node, query) => {
+    try {
+      return await (query ? node.querySelector(query) : node);
+    } catch (error) {
+      console.error(`Cannot find ${query ? `${query} in`: ''} ${node}.`, error);
+      return null;
+    }
+  };    
 
+      
   roam42.common.sidebarRightToggle = ()=>{
     try {
         document.getElementsByClassName("bp3-icon-more")[0].click();
